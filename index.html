@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pong Retro</title>
+  <title>Pong Retro Mejorado</title>
   <style>
     body { 
       text-align: center; 
@@ -22,7 +22,7 @@
   </style>
 </head>
 <body>
-  <h1>Pong Retro</h1>
+  <h1>Pong Retro Mejorado</h1>
   <canvas id="gameCanvas" width="600" height="400"></canvas>
   <script>
     const canvas = document.getElementById("gameCanvas");
@@ -33,7 +33,8 @@
     const paddleHeight = 80;
     let playerY = (canvas.height - paddleHeight) / 2;
     let aiY = (canvas.height - paddleHeight) / 2;
-    const paddleSpeed = 5;
+    let paddleSpeed = 5; // Velocidad del jugador (constante)
+    let aiSpeed = 5;     // Velocidad de la IA
 
     // Propiedades de la bola
     let ballX = canvas.width / 2;
@@ -41,6 +42,12 @@
     const ballRadius = 8;
     let ballSpeedX = 4;
     let ballSpeedY = 4;
+
+    // Variables del juego
+    let playerLives = 3;
+    let score = 0;
+    let level = 1;
+    let nextLevelScore = 5; // Cada 5 puntos se sube de nivel
 
     // Variables de entrada del jugador
     let upPressed = false;
@@ -63,13 +70,13 @@
       }
     });
 
-    // Función para dibujar una paleta
+    // Dibujar paleta
     function drawPaddle(x, y) {
       ctx.fillStyle = "#fff";
       ctx.fillRect(x, y, paddleWidth, paddleHeight);
     }
 
-    // Función para dibujar la bola
+    // Dibujar la bola
     function drawBall() {
       ctx.beginPath();
       ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
@@ -78,17 +85,23 @@
       ctx.closePath();
     }
 
-    // Dibujar la red central
-    function drawNet() {
+    // Dibujar la red central y la información del juego (vidas, puntos y nivel)
+    function drawUI() {
+      // Red central
       ctx.fillStyle = "#fff";
       const netWidth = 2;
       const netHeight = 10;
       for (let i = 0; i < canvas.height; i += 15) {
         ctx.fillRect((canvas.width - netWidth) / 2, i, netWidth, netHeight);
       }
+      // Información
+      ctx.font = "16px Arial";
+      ctx.fillText("Vidas: " + playerLives, 20, 20);
+      ctx.fillText("Puntos: " + score, canvas.width / 2 - 30, 20);
+      ctx.fillText("Nivel: " + level, canvas.width - 100, 20);
     }
 
-    // Actualizar posición de las paletas
+    // Movimiento de las paletas
     function movePaddles() {
       // Movimiento del jugador
       if (upPressed && playerY > 0) {
@@ -97,13 +110,13 @@
       if (downPressed && playerY < canvas.height - paddleHeight) {
         playerY += paddleSpeed;
       }
-      // Movimiento de la paleta de la IA (seguimiento simple de la bola)
+      // Movimiento de la IA: seguimiento simple de la bola
       if (aiY + paddleHeight / 2 < ballY) {
-        aiY += paddleSpeed;
+        aiY += aiSpeed;
       } else if (aiY + paddleHeight / 2 > ballY) {
-        aiY -= paddleSpeed;
+        aiY -= aiSpeed;
       }
-      // Evitar que la paleta de la IA se salga de los límites
+      // Limitar la paleta de la IA dentro del canvas
       if (aiY < 0) aiY = 0;
       if (aiY > canvas.height - paddleHeight) aiY = canvas.height - paddleHeight;
     }
@@ -118,47 +131,76 @@
         ballSpeedY = -ballSpeedY;
       }
 
-      // Colisión con la paleta del jugador (izquierda)
+      // Colisión con la paleta del jugador (lado izquierdo)
       if (ballX - ballRadius < paddleWidth) {
         if (ballY > playerY && ballY < playerY + paddleHeight) {
           ballSpeedX = -ballSpeedX;
-          // Ajustar la velocidad en función de dónde impacta la bola en la paleta
           let deltaY = ballY - (playerY + paddleHeight / 2);
           ballSpeedY = deltaY * 0.2;
         } else {
-          // La bola se perdió, reiniciar posición
+          // El jugador falla: pierde una vida
+          playerLives--;
+          if (playerLives <= 0) {
+            alert("Game Over! Has perdido todas tus vidas.");
+            resetGame();
+            return;
+          }
           resetBall();
+          return;
         }
       }
 
-      // Colisión con la paleta de la IA (derecha)
+      // Colisión con la paleta de la IA (lado derecho)
       if (ballX + ballRadius > canvas.width - paddleWidth) {
         if (ballY > aiY && ballY < aiY + paddleHeight) {
           ballSpeedX = -ballSpeedX;
           let deltaY = ballY - (aiY + paddleHeight / 2);
           ballSpeedY = deltaY * 0.2;
         } else {
-          // La bola se perdió, reiniciar posición
+          // El jugador anota un punto
+          score++;
+          if (score >= nextLevelScore) {
+            level++;
+            nextLevelScore += 5;
+            // Aumenta la dificultad: incrementa la velocidad de la bola y de la IA
+            ballSpeedX *= 1.2;
+            ballSpeedY *= 1.2;
+            aiSpeed += 1;
+          }
           resetBall();
+          return;
         }
       }
     }
 
-    // Función para reiniciar la bola al centro
+    // Reinicia la posición de la bola (manteniendo la velocidad actual)
     function resetBall() {
       ballX = canvas.width / 2;
       ballY = canvas.height / 2;
-      // Invertir la dirección para que la bola se lance hacia el que recibió el punto
-      ballSpeedX = -ballSpeedX;
+      // Invertir la dirección X para que la bola se lance hacia el lado contrario
+      ballSpeedX = (ballSpeedX > 0) ? -Math.abs(ballSpeedX) : Math.abs(ballSpeedX);
+      // Dar un pequeño impulso aleatorio en Y
       ballSpeedY = 4 * (Math.random() > 0.5 ? 1 : -1);
+    }
+
+    // Reiniciar el juego completo
+    function resetGame() {
+      playerLives = 3;
+      score = 0;
+      level = 1;
+      nextLevelScore = 5;
+      ballSpeedX = 4;
+      ballSpeedY = 4;
+      aiSpeed = 5;
+      resetBall();
     }
 
     // Función principal de dibujo y actualización
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawNet();
-      drawPaddle(0, playerY);                   // Paleta izquierda (jugador)
-      drawPaddle(canvas.width - paddleWidth, aiY); // Paleta derecha (IA)
+      drawUI();
+      drawPaddle(0, playerY);                     // Paleta del jugador (izquierda)
+      drawPaddle(canvas.width - paddleWidth, aiY);  // Paleta de la IA (derecha)
       drawBall();
       movePaddles();
       moveBall();
