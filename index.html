@@ -20,28 +20,44 @@
       border: 2px solid #fff; 
     }
   </style>
+  <!-- Script de Google AdSense preparado (reemplaza los valores cuando tengas tu cuenta) -->
+  <script data-ad-client="ca-pub-XXXXXXXXXXXX" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 </head>
 <body>
-  <h1>Pong Retro Mejorado</h1>
+  <!-- Bloque de anuncio de AdSense (completa tus datos cuando sea necesario) -->
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-XXXXXXXXXXXX"
+       data-ad-slot="1234567890"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>
+       (adsbygoogle = window.adsbygoogle || []).push({});
+  </script>
+
   <canvas id="gameCanvas" width="600" height="400"></canvas>
+
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
+
+    // Estados del juego: "start", "playing", "gameOver"
+    let gameState = "start";
 
     // Propiedades de la paleta
     const paddleWidth = 10;
     const paddleHeight = 80;
     let playerY = (canvas.height - paddleHeight) / 2;
     let aiY = (canvas.height - paddleHeight) / 2;
-    let paddleSpeed = 5; // Velocidad del jugador (constante)
-    let aiSpeed = 5;     // Velocidad de la IA
+    let paddleSpeed = 5; // Velocidad del jugador
+    let aiSpeed = 3;     // Velocidad de la IA (más baja al inicio)
 
-    // Propiedades de la bola
+    // Propiedades de la bola (más sencilla al inicio)
     let ballX = canvas.width / 2;
     let ballY = canvas.height / 2;
     const ballRadius = 8;
-    let ballSpeedX = 4;
-    let ballSpeedY = 4;
+    let ballSpeedX = 3;
+    let ballSpeedY = 3;
 
     // Variables del juego
     let playerLives = 3;
@@ -53,12 +69,19 @@
     let upPressed = false;
     let downPressed = false;
 
-    // Detectar eventos de teclado
+    // Detectar eventos de teclado para mover la paleta y controlar el inicio/reinicio
     document.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowUp") {
-        upPressed = true;
-      } else if (e.key === "ArrowDown") {
-        downPressed = true;
+      if (gameState === "playing") {
+        if (e.key === "ArrowUp") {
+          upPressed = true;
+        } else if (e.key === "ArrowDown") {
+          downPressed = true;
+        }
+      }
+      if ((gameState === "start" || gameState === "gameOver") && e.key === " ") {
+        // Iniciar o reiniciar el juego al presionar SPACE
+        resetGame();
+        gameState = "playing";
       }
     });
 
@@ -70,13 +93,13 @@
       }
     });
 
-    // Dibujar paleta
+    // Función para dibujar una paleta
     function drawPaddle(x, y) {
       ctx.fillStyle = "#fff";
       ctx.fillRect(x, y, paddleWidth, paddleHeight);
     }
 
-    // Dibujar la bola
+    // Función para dibujar la bola
     function drawBall() {
       ctx.beginPath();
       ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
@@ -85,7 +108,7 @@
       ctx.closePath();
     }
 
-    // Dibujar la red central y la información del juego (vidas, puntos y nivel)
+    // Dibujar la red central y la información (vidas, puntos, nivel)
     function drawUI() {
       // Red central
       ctx.fillStyle = "#fff";
@@ -99,6 +122,31 @@
       ctx.fillText("Vidas: " + playerLives, 20, 20);
       ctx.fillText("Puntos: " + score, canvas.width / 2 - 30, 20);
       ctx.fillText("Nivel: " + level, canvas.width - 100, 20);
+    }
+
+    // Dibujar pantalla de inicio
+    function drawStartScreen() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#222";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.font = "30px Arial";
+      ctx.fillText("PONG RETRO MEJORADO", canvas.width / 2 - 190, canvas.height / 2 - 20);
+      ctx.font = "20px Arial";
+      ctx.fillText("Presiona SPACE para comenzar", canvas.width / 2 - 150, canvas.height / 2 + 20);
+    }
+
+    // Dibujar pantalla de Game Over
+    function drawGameOverScreen() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#222";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.font = "30px Arial";
+      ctx.fillText("GAME OVER", canvas.width / 2 - 80, canvas.height / 2 - 20);
+      ctx.font = "20px Arial";
+      ctx.fillText("Puntuación: " + score, canvas.width / 2 - 70, canvas.height / 2 + 20);
+      ctx.fillText("Presiona SPACE para reiniciar", canvas.width / 2 - 150, canvas.height / 2 + 60);
     }
 
     // Movimiento de las paletas
@@ -141,8 +189,7 @@
           // El jugador falla: pierde una vida
           playerLives--;
           if (playerLives <= 0) {
-            alert("Game Over! Has perdido todas tus vidas.");
-            resetGame();
+            gameState = "gameOver";
             return;
           }
           resetBall();
@@ -162,10 +209,10 @@
           if (score >= nextLevelScore) {
             level++;
             nextLevelScore += 5;
-            // Aumenta la dificultad: incrementa la velocidad de la bola y de la IA
+            // Aumenta la dificultad: incrementa velocidad de bola e IA
             ballSpeedX *= 1.2;
             ballSpeedY *= 1.2;
-            aiSpeed += 1;
+            aiSpeed += 0.5;
           }
           resetBall();
           return;
@@ -180,33 +227,42 @@
       // Invertir la dirección X para que la bola se lance hacia el lado contrario
       ballSpeedX = (ballSpeedX > 0) ? -Math.abs(ballSpeedX) : Math.abs(ballSpeedX);
       // Dar un pequeño impulso aleatorio en Y
-      ballSpeedY = 4 * (Math.random() > 0.5 ? 1 : -1);
+      ballSpeedY = 3 * (Math.random() > 0.5 ? 1 : -1);
     }
 
-    // Reiniciar el juego completo
+    // Reiniciar el juego completo (se usa al iniciar o reiniciar)
     function resetGame() {
       playerLives = 3;
       score = 0;
       level = 1;
       nextLevelScore = 5;
-      ballSpeedX = 4;
-      ballSpeedY = 4;
-      aiSpeed = 5;
+      ballSpeedX = 3;
+      ballSpeedY = 3;
+      aiSpeed = 3;
+      playerY = (canvas.height - paddleHeight) / 2;
+      aiY = (canvas.height - paddleHeight) / 2;
       resetBall();
     }
 
-    // Función principal de dibujo y actualización
+    // Función principal: dependiendo del estado, dibuja la pantalla adecuada
     function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawUI();
-      drawPaddle(0, playerY);                     // Paleta del jugador (izquierda)
-      drawPaddle(canvas.width - paddleWidth, aiY);  // Paleta de la IA (derecha)
-      drawBall();
-      movePaddles();
-      moveBall();
+      if (gameState === "start") {
+        drawStartScreen();
+      } else if (gameState === "playing") {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawUI();
+        drawPaddle(0, playerY);                      // Paleta del jugador (izquierda)
+        drawPaddle(canvas.width - paddleWidth, aiY);   // Paleta de la IA (derecha)
+        drawBall();
+        movePaddles();
+        moveBall();
+      } else if (gameState === "gameOver") {
+        drawGameOverScreen();
+      }
       requestAnimationFrame(draw);
     }
 
+    // Iniciar el ciclo de dibujo
     draw();
   </script>
 </body>
