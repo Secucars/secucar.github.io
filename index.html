@@ -1,35 +1,171 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juegos Retro Online</title>
-    <style>
-        body { text-align: center; font-family: Arial, sans-serif; }
-        canvas { border: 2px solid black; margin-top: 20px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pong Retro</title>
+  <style>
+    body { 
+      text-align: center; 
+      font-family: Arial, sans-serif; 
+      background: #000; 
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    canvas { 
+      background: #222; 
+      display: block; 
+      margin: 20px auto; 
+      border: 2px solid #fff; 
+    }
+  </style>
 </head>
 <body>
-    <h1>Juegos Retro Online</h1>
-    <p>Disfruta de nuestros juegos clásicos.</p>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
-    <script>
-        // Juego Pong básico en JavaScript
-        let canvas = document.getElementById("gameCanvas");
-        let ctx = canvas.getContext("2d");
-        let ballX = 200, ballY = 200, ballDX = 2, ballDY = 2, ballSize = 10;
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "red";
-            ctx.beginPath();
-            ctx.arc(ballX, ballY, ballSize, 0, Math.PI * 2);
-            ctx.fill();
-            ballX += ballDX; ballY += ballDY;
-            if (ballX < 0 || ballX > canvas.width) ballDX *= -1;
-            if (ballY < 0 || ballY > canvas.height) ballDY *= -1;
-            requestAnimationFrame(draw);
+  <h1>Pong Retro</h1>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Propiedades de la paleta
+    const paddleWidth = 10;
+    const paddleHeight = 80;
+    let playerY = (canvas.height - paddleHeight) / 2;
+    let aiY = (canvas.height - paddleHeight) / 2;
+    const paddleSpeed = 5;
+
+    // Propiedades de la bola
+    let ballX = canvas.width / 2;
+    let ballY = canvas.height / 2;
+    const ballRadius = 8;
+    let ballSpeedX = 4;
+    let ballSpeedY = 4;
+
+    // Variables de entrada del jugador
+    let upPressed = false;
+    let downPressed = false;
+
+    // Detectar eventos de teclado
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowUp") {
+        upPressed = true;
+      } else if (e.key === "ArrowDown") {
+        downPressed = true;
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      if (e.key === "ArrowUp") {
+        upPressed = false;
+      } else if (e.key === "ArrowDown") {
+        downPressed = false;
+      }
+    });
+
+    // Función para dibujar una paleta
+    function drawPaddle(x, y) {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(x, y, paddleWidth, paddleHeight);
+    }
+
+    // Función para dibujar la bola
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    // Dibujar la red central
+    function drawNet() {
+      ctx.fillStyle = "#fff";
+      const netWidth = 2;
+      const netHeight = 10;
+      for (let i = 0; i < canvas.height; i += 15) {
+        ctx.fillRect((canvas.width - netWidth) / 2, i, netWidth, netHeight);
+      }
+    }
+
+    // Actualizar posición de las paletas
+    function movePaddles() {
+      // Movimiento del jugador
+      if (upPressed && playerY > 0) {
+        playerY -= paddleSpeed;
+      }
+      if (downPressed && playerY < canvas.height - paddleHeight) {
+        playerY += paddleSpeed;
+      }
+      // Movimiento de la paleta de la IA (seguimiento simple de la bola)
+      if (aiY + paddleHeight / 2 < ballY) {
+        aiY += paddleSpeed;
+      } else if (aiY + paddleHeight / 2 > ballY) {
+        aiY -= paddleSpeed;
+      }
+      // Evitar que la paleta de la IA se salga de los límites
+      if (aiY < 0) aiY = 0;
+      if (aiY > canvas.height - paddleHeight) aiY = canvas.height - paddleHeight;
+    }
+
+    // Actualizar la posición de la bola y gestionar colisiones
+    function moveBall() {
+      ballX += ballSpeedX;
+      ballY += ballSpeedY;
+
+      // Rebote en la parte superior e inferior
+      if (ballY + ballRadius > canvas.height || ballY - ballRadius < 0) {
+        ballSpeedY = -ballSpeedY;
+      }
+
+      // Colisión con la paleta del jugador (izquierda)
+      if (ballX - ballRadius < paddleWidth) {
+        if (ballY > playerY && ballY < playerY + paddleHeight) {
+          ballSpeedX = -ballSpeedX;
+          // Ajustar la velocidad en función de dónde impacta la bola en la paleta
+          let deltaY = ballY - (playerY + paddleHeight / 2);
+          ballSpeedY = deltaY * 0.2;
+        } else {
+          // La bola se perdió, reiniciar posición
+          resetBall();
         }
-        draw();
-    </script>
+      }
+
+      // Colisión con la paleta de la IA (derecha)
+      if (ballX + ballRadius > canvas.width - paddleWidth) {
+        if (ballY > aiY && ballY < aiY + paddleHeight) {
+          ballSpeedX = -ballSpeedX;
+          let deltaY = ballY - (aiY + paddleHeight / 2);
+          ballSpeedY = deltaY * 0.2;
+        } else {
+          // La bola se perdió, reiniciar posición
+          resetBall();
+        }
+      }
+    }
+
+    // Función para reiniciar la bola al centro
+    function resetBall() {
+      ballX = canvas.width / 2;
+      ballY = canvas.height / 2;
+      // Invertir la dirección para que la bola se lance hacia el que recibió el punto
+      ballSpeedX = -ballSpeedX;
+      ballSpeedY = 4 * (Math.random() > 0.5 ? 1 : -1);
+    }
+
+    // Función principal de dibujo y actualización
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawNet();
+      drawPaddle(0, playerY);                   // Paleta izquierda (jugador)
+      drawPaddle(canvas.width - paddleWidth, aiY); // Paleta derecha (IA)
+      drawBall();
+      movePaddles();
+      moveBall();
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  </script>
 </body>
 </html>
