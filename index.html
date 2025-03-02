@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juegos Retro Online</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        canvas { border: 2px solid black; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Juegos Retro Online</h1>
+    <p>Disfruta de nuestros juegos clásicos.</p>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <script>
+        // Juego Pong básico en JavaScript
+        let canvas = document.getElementById("gameCanvas");
+        let ctx = canvas.getContext("2d");
+        let ballX = 200, ballY = 200, ballDX = 2, ballDY = 2, ballSize = 10;
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "red";
+            ctx.beginPath();
+            ctx.arc(ballX, ballY, ballSize, 0, Math.PI * 2);
+            ctx.fill();
+            ballX += ballDX; ballY += ballDY;
+            if (ballX < 0 || ballX > canvas.width) ballDX *= -1;
+            if (ballY < 0 || ballY > canvas.height) ballDY *= -1;
+            requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+</body>
+</html>
